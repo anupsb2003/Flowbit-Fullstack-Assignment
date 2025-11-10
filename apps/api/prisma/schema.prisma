@@ -1,0 +1,83 @@
+// File: apps/api/prisma/schema.prisma
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js" // Use the standard Node.js client
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------
+// YOUR DATA MODELS (TABLES) START HERE
+// ------------------------------------------------------------------
+
+// 1. Vendors Table: Stores unique vendor information.
+model Vendor {
+  id        String    @id @default(cuid())
+  vendor_id Int       @unique // Original ID from the JSON
+  name      String
+  email     String?
+  address   String?
+  invoices  Invoice[] // Relation to the Invoices table
+}
+
+// 2. Customer Table: Stores unique customer information.
+model Customer {
+  id        String    @id @default(cuid())
+  customer_id Int     @unique
+  name      String
+  email     String?
+  invoices  Invoice[] // Relation to the Invoices table
+}
+
+// 3. Invoices Table: The core transactional record.
+model Invoice {
+  id            String     @id @default(cuid())
+  invoice_number String     @unique
+  status        String
+  issue_date    DateTime   @db.Date
+  due_date      DateTime   @db.Date
+  total_amount  Float
+  category      String
+  document_url  String?
+  
+  // Relationships (Foreign Keys)
+  vendor_id     String
+  vendor        Vendor     @relation(fields: [vendor_id], references: [id])
+  
+  customer_id   String
+  customer      Customer   @relation(fields: [customer_id], references: [id])
+  
+  lineItems     LineItem[]
+  payments      Payment[]
+}
+
+// 4. Line Items Table: Detailed breakdown of the invoice.
+model LineItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Int
+  unit_price  Float
+  total       Float
+  
+  // Relationship
+  invoice_id  String
+  invoice     Invoice @relation(fields: [invoice_id], references: [id])
+}
+
+// 5. Payment Table: Record of payments against the invoice.
+model Payment {
+  id            String    @id @default(cuid())
+  payment_date  DateTime? @db.Date
+  amount_paid   Float
+  payment_method String?
+  
+  // Relationship
+  invoice_id    String    @unique 
+  invoice       Invoice   @relation(fields: [invoice_id], references: [id])
+}
